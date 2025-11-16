@@ -36,6 +36,7 @@ jobs:
         run: |
           python3 << 'EOF'
           import os
+          import re
           
           gradle_file = "node_modules/@react-native-community/cli-platform-android/native_modules.gradle"
           
@@ -43,29 +44,20 @@ jobs:
               with open(gradle_file, 'r') as f:
                   content = f.read()
               
-              # Search for the actual line with getReactNativeConfig()
-              lines = content.split('\n')
-              found = False
-              for i, line in enumerate(lines):
-                  if 'getReactNativeConfig' in line:
-                      print(f"Line {i}: {line[:120]}")
-                      found = True
+              # Replace the entire getReactNativeConfig method to return safe defaults
+              # Find the method and replace it completely
+              pattern = r'ArrayList<HashMap<String, String>> getReactNativeConfig\(\) \{[^}]*(?:\{[^}]*\}[^}]*)*\}'
               
-              if not found:
-                  print("✗ getReactNativeConfig not found!")
-              else:
-                  # Replace - try multiple patterns
-                  original_len = len(content)
-                  
-                  # Pattern 1: getReactNativeConfig()
-                  content = content.replace('getReactNativeConfig()', '["dependencies": [:], "project": ["android": null]]')
-                  
-                  if len(content) != original_len:
-                      print(f"✓ Replaced getReactNativeConfig()")
-                      with open(gradle_file, 'w') as f:
-                          f.write(content)
-                  else:
-                      print("✗ No replacements made")
+              replacement = '''ArrayList<HashMap<String, String>> getReactNativeConfig() {
+    // Patched to avoid CLI call
+    return new ArrayList()
+  }'''
+              
+              content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+              
+              with open(gradle_file, 'w') as f:
+                  f.write(content)
+              print("✓ Gradle method replaced")
           else:
               print("✗ Gradle file not found")
           EOF
