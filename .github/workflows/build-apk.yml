@@ -36,24 +36,30 @@ jobs:
         run: |
           python3 << 'EOF'
           import os
-          import re
           
           gradle_file = "node_modules/@react-native-community/cli-platform-android/native_modules.gradle"
           
           if os.path.exists(gradle_file):
               with open(gradle_file, 'r') as f:
-                  content = f.read()
+                  lines = f.readlines()
               
-              # Only replace the specific line that calls getReactNativeConfig()
-              # This is the minimal change needed
-              content = re.sub(
-                  r'(\s+)def config = getReactNativeConfig\(\)',
-                  r'\1def config = [:]',
-                  content
-              )
+              # Find line 250 and surrounding lines
+              print("Lines around 250:")
+              for i in range(248, min(255, len(lines))):
+                  print(f"{i}: {repr(lines[i][:100])}")
+              
+              # Now do the replacement - handle any spacing variations
+              new_lines = []
+              for line in lines:
+                  # Match the config assignment no matter the spacing
+                  if 'def config = getReactNativeConfig()' in line:
+                      # Replace with empty map
+                      line = line.replace('getReactNativeConfig()', '[:]')
+                      print(f"✓ Replaced line: {repr(line[:80])}")
+                  new_lines.append(line)
               
               with open(gradle_file, 'w') as f:
-                  f.write(content)
+                  f.writelines(new_lines)
               print("✓ Gradle file patched")
           else:
               print("✗ Gradle file not found")
