@@ -36,25 +36,42 @@ jobs:
         run: |
           python3 << 'EOF'
           import os
-          import re
           
-          # Find and patch the gradle file in node_modules
           gradle_file = "node_modules/@react-native-community/cli-platform-android/native_modules.gradle"
           
           if os.path.exists(gradle_file):
               with open(gradle_file, 'r') as f:
-                  content = f.read()
+                  lines = f.readlines()
               
-              # Replace getReactNativeConfig() call with empty map
-              # This avoids the Node CLI JSON parsing error
+              # Find and comment out the entire getReactNativeConfig method
+              new_lines = []
+              in_method = False
+              brace_count = 0
+              
+              for i, line in enumerate(lines):
+                  # Comment out lines inside and related to getReactNativeConfig
+                  if 'getReactNativeConfig' in line or (in_method and i < 260):
+                      new_lines.append('// ' + line)
+                      if '{' in line:
+                          in_method = True
+                          brace_count += line.count('{')
+                      if in_method:
+                          brace_count += line.count('{') - line.count('}')
+                          if brace_count == 0:
+                              in_method = False
+                  else:
+                      new_lines.append(line)
+              
+              # Replace the ReactNativeModules class instantiation to avoid calling the method
+              content = ''.join(new_lines)
               content = content.replace(
                   'def config = getReactNativeConfig()',
-                  'def config = [:]'
+                  'def config = [:] // PATCHED'
               )
               
               with open(gradle_file, 'w') as f:
                   f.write(content)
-              print("✓ Gradle file patched")
+              print("✓ Gradle file patched extensively")
           else:
               print("✗ Gradle file not found")
           EOF
