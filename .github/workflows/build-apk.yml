@@ -32,20 +32,36 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Patch native_modules.gradle
+      - name: Create patched native_modules.gradle
         run: |
+          cat > android/native_modules_patch.gradle << 'GRADLE_EOF'
+          static def getReactNativeConfig() {
+              return [:]
+          }
+          GRADLE_EOF
+          
+          # Replace the problematic section
           GRADLE_FILE="node_modules/@react-native-community/cli-platform-android/native_modules.gradle"
-          # Comment out the problematic line that calls the React Native CLI
-          sed -i '250s/def config = getReactNativeConfig()/def config = [:]  \/\/ patched/' "$GRADLE_FILE"
-          cat "$GRADLE_FILE" | head -255 | tail -10
+          # Find line 250 and replace the getReactNativeConfig call
+          python3 << 'PYTHON_EOF'
+          with open("node_modules/@react-native-community/cli-platform-android/native_modules.gradle", "r") as f:
+              content = f.read()
+          
+          # Replace the CLI call with a safe return
+          content = content.replace(
+              'def config = getReactNativeConfig()',
+              'def config = [:]'
+          )
+          
+          with open("node_modules/@react-native-community/cli-platform-android/native_modules.gradle", "w") as f:
+              f.write(content)
+          PYTHON_EOF
 
-      - name: Clean gradle cache
+      - name: Deep clean
         run: |
-          cd android
-          ./gradlew --stop || true
-          rm -rf .gradle build app/build
-          cd ..
-          rm -rf node_modules/.gradle
+          rm -rf android/.gradle android/build android/app/build
+          pkill -f "gradle" || true
+          sleep 2
 
       - name: Build Android Debug APK
         run: |
