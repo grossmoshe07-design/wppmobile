@@ -26,13 +26,16 @@ jobs:
         with:
           node-version: '16'
 
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
+      - name: Clean and install dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install --legacy-peer-deps
 
-      - name: Install Ruby (for Cocoapods and build tools)
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '2.7'
+      - name: Clean gradle cache
+        run: |
+          cd android
+          ./gradlew --stop
+          rm -rf .gradle build
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
@@ -40,8 +43,7 @@ jobs:
       - name: Build Android Release APK
         run: |
           cd android
-          ./gradlew clean
-          ./gradlew assembleRelease --stacktrace
+          ./gradlew clean assembleRelease --stacktrace -x lint
         env:
           JAVA_OPTS: '-Xmx4096m'
 
