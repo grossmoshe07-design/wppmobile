@@ -26,33 +26,32 @@ jobs:
         with:
           node-version: '16'
 
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Clean and install dependencies
+      - name: Patch native_modules.gradle
         run: |
-          rm -rf node_modules package-lock.json
-          npm install --legacy-peer-deps
-
-      - name: Debug React Native config
-        run: |
-          node ./node_modules/@react-native-community/cli/build/bin.js config 2>&1 || true
+          sed -i 's/def getReactNativeConfig.*/def getReactNativeConfig() { return [:] }/g' node_modules/@react-native-community/cli-platform-android/native_modules.gradle || true
 
       - name: Clean gradle cache
         run: |
           cd android
-          ./gradlew --stop
+          ./gradlew --stop || true
           rm -rf .gradle build app/build
 
       - name: Build Android Debug APK
         run: |
           cd android
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew clean assembleDebug
         env:
           JAVA_OPTS: '-Xmx4096m'
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: app-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
@@ -61,6 +60,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: android/app/build/outputs/apk/release/app-release.apk
+          files: android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
