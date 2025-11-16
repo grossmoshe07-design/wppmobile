@@ -32,30 +32,31 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Create patched native_modules.gradle
+      - name: Patch native_modules.gradle
         run: |
-          cat > android/native_modules_patch.gradle << 'GRADLE_EOF'
-          static def getReactNativeConfig() {
-              return [:]
-          }
-          GRADLE_EOF
-          
-          # Replace the problematic section
-          GRADLE_FILE="node_modules/@react-native-community/cli-platform-android/native_modules.gradle"
-          # Find line 250 and replace the getReactNativeConfig call
           python3 << 'PYTHON_EOF'
-          with open("node_modules/@react-native-community/cli-platform-android/native_modules.gradle", "r") as f:
+          import re
+          
+          gradle_file = "node_modules/@react-native-community/cli-platform-android/native_modules.gradle"
+          with open(gradle_file, "r") as f:
               content = f.read()
           
-          # Replace the CLI call with a safe return
-          content = content.replace(
-              'def config = getReactNativeConfig()',
-              'def config = [:]'
+          # Comment out the line that calls the Node CLI
+          content = re.sub(
+              r'(\s+)def config = getReactNativeConfig\(\)',
+              r'\1def config = [:]  // Patched to avoid CLI call',
+              content
           )
           
-          with open("node_modules/@react-native-community/cli-platform-android/native_modules.gradle", "w") as f:
+          with open(gradle_file, "w") as f:
               f.write(content)
+          
+          print("Patched successfully")
           PYTHON_EOF
+
+      - name: Verify patch
+        run: |
+          grep -n "def config" node_modules/@react-native-community/cli-platform-android/native_modules.gradle | head -5
 
       - name: Deep clean
         run: |
