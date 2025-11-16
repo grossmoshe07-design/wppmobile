@@ -45,21 +45,17 @@ jobs:
                   content = f.read()
               
               # Replace the entire getReactNativeConfig method to return safe defaults
-              # Find the method and replace it completely
               pattern = r'ArrayList<HashMap<String, String>> getReactNativeConfig\(\) \{[^}]*(?:\{[^}]*\}[^}]*)*\}'
               
-              replacement = '''ArrayList<HashMap<String, String>> getReactNativeConfig() {
-    // Patched to avoid CLI call
-    return new ArrayList()
-  }'''
+              replacement = 'ArrayList<HashMap<String, String>> getReactNativeConfig() {\n    return new ArrayList()\n  }'
               
               content = re.sub(pattern, replacement, content, flags=re.DOTALL)
               
               with open(gradle_file, 'w') as f:
                   f.write(content)
-              print("✓ Gradle method replaced")
+              print("Gradle method replaced")
           else:
-              print("✗ Gradle file not found")
+              print("Gradle file not found")
           EOF
 
       - name: Clean and build
