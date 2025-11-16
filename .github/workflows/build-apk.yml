@@ -26,6 +26,9 @@ jobs:
         with:
           node-version: '16'
 
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
       - name: Clean and install dependencies
         run: |
           rm -rf node_modules package-lock.json
@@ -36,9 +39,6 @@ jobs:
           cd android
           ./gradlew --stop
           rm -rf .gradle build
-
-      - name: Make gradlew executable
-        run: chmod +x android/gradlew
 
       - name: Build Android Release APK
         run: |
