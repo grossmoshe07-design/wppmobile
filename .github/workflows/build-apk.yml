@@ -29,6 +29,11 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Install Ruby (for Cocoapods and build tools)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
@@ -36,7 +41,7 @@ jobs:
         run: |
           cd android
           ./gradlew clean
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --stacktrace
         env:
           JAVA_OPTS: '-Xmx4096m'
 
