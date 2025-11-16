@@ -41,26 +41,31 @@ jobs:
           
           if os.path.exists(gradle_file):
               with open(gradle_file, 'r') as f:
-                  lines = f.readlines()
+                  content = f.read()
               
-              # Find line 250 and surrounding lines
-              print("Lines around 250:")
-              for i in range(248, min(255, len(lines))):
-                  print(f"{i}: {repr(lines[i][:100])}")
+              # Search for the actual line with getReactNativeConfig()
+              lines = content.split('\n')
+              found = False
+              for i, line in enumerate(lines):
+                  if 'getReactNativeConfig' in line:
+                      print(f"Line {i}: {line[:120]}")
+                      found = True
               
-              # Now do the replacement - handle any spacing variations
-              new_lines = []
-              for line in lines:
-                  # Match the config assignment no matter the spacing
-                  if 'def config = getReactNativeConfig()' in line:
-                      # Replace with empty map
-                      line = line.replace('getReactNativeConfig()', '[:]')
-                      print(f"✓ Replaced line: {repr(line[:80])}")
-                  new_lines.append(line)
-              
-              with open(gradle_file, 'w') as f:
-                  f.writelines(new_lines)
-              print("✓ Gradle file patched")
+              if not found:
+                  print("✗ getReactNativeConfig not found!")
+              else:
+                  # Replace - try multiple patterns
+                  original_len = len(content)
+                  
+                  # Pattern 1: getReactNativeConfig()
+                  content = content.replace('getReactNativeConfig()', '["dependencies": [:], "project": ["android": null]]')
+                  
+                  if len(content) != original_len:
+                      print(f"✓ Replaced getReactNativeConfig()")
+                      with open(gradle_file, 'w') as f:
+                          f.write(content)
+                  else:
+                      print("✗ No replacements made")
           else:
               print("✗ Gradle file not found")
           EOF
